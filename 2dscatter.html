@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+
+<head>
+    <title>2-D Scatterplot</title>
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+  
+    <style>
+        circle {
+            /*define fill opacity*/
+            fill-opacity: 0.3;
+            /*define stroke color*/
+            stroke: black;
+            shape-rendering: crispEdges;
+            /*define stroke opacity*/
+            stroke-opacity: .7;
+            /*define stroke width*/
+            stroke-width: 2;
+        }
+        
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+        
+        .axis text {
+            font-family: sans-serif;
+            font-size: 11px;
+        }
+        /* style for tooltip shown when hovered over*/
+        
+        .tooltip {
+            background-color: yellow;
+            position: absolute;
+            width: 100px;
+            height: 60px;
+            pointer-events: none;
+        }
+        
+        body {
+  background: url("" ) no-repeat top center;
+  background-size: cover;
+}.container {
+   margin: 50px auto;
+  max-width: 1000px;
+  height: 700px;
+  background: rgba(255,255,255,0.85);
+  border-radius: 5px;
+}
+
+    </style>
+</head>
+
+<body>
+    <script>
+        /*
+         *
+         *   The following codes:
+         *       1. load data from a CSV file 
+         *       2. visualize two variables "Combined FE" and "# Cylinders" in a 2-D scatterplot
+         *       3. show the axes with labels
+         *       4. show x and y values when the dots are hovered over. 
+         *       5. show the legend 
+         */
+         
+        
+        // create svg
+        var w = 1000, // width
+            h = 800; // height
+
+        var padding = 100; // add padding
+
+        var svg = d3.select('body').append('svg')
+            .attr('width', w)
+            .attr('height', h);
+
+        
+
+        /*
+         *  Step 1. Load data
+         *
+         */
+        d3.csv("dataset.csv", function(data) {
+            // Visualization codes go here
+            // console.log(data);
+            var data = data.filter(function(data) 
+        { 
+
+        if( data["Age"] <23 && data["Potential"] > 87 )
+        { 
+            return data;
+        } 
+
+    })
+            //var colorScale = d3.scale.category10();
+            var color = d3.scale.linear()
+                        .domain([0, 10])  
+                        .range(["yellow","green"]); 
+            var xAttribute = 'Potential', // define the attribute used for x-axis
+                yAttribute = 'Value', // define the attribute used for y-axis
+                rAttribute = 'Wage';
+
+            // 1'. Preprocessing: create the scale for x axis
+            var xmax = d3.max(data, function(d) {
+                // parseInt is used to convert the string value to integer.
+                // although d['# Cylinders'] contains numbers, the values are 
+                // stored as strings when loaded from CSV
+                return parseInt(d[xAttribute]);
+            });
+
+            console.log('xmax = ' + xmax);
+
+            // define the scaler for the x-axis
+            var xScale = d3.scale.linear()
+                .domain([87, 95])
+                .range([padding, w - padding]) // take into account padding when displayed
+                .nice(); // make the axis look nicer
+
+
+            // 1'. Preprocessing: create the scale for y axis
+            var ymax = d3.max(data, function(d) {
+                // parseFloat is used to convert the string value to float numbers.
+                return parseInt(d[yAttribute]);
+            });
+
+            console.log('ymax = ' + ymax);
+
+            // define the scaler for the y-axis
+            var yScale = d3.scale.linear()
+                .domain([0, ymax])
+                .range([h - padding, padding])
+                .nice();
+
+
+            // 1'. Preprocessing: create the scale for circle radius
+            var rmax = d3.max(data, function(d) {
+                // parseFloat is used to convert the string value to float numbers.
+                return parseInt(d[yAttribute]); // use the same attribute as that used in y-axis, i.e., Combined FE
+            });
+
+            console.log('rmax = ' + rmax);
+
+            // define scaler for the dots/circles shown
+            var rScale = d3.scale.linear()
+                .domain([0, rmax])
+                .range([5, 30]); // the min and max values of radius (5 and 15) are selected
+            // subjectively. Feel free to choose your own values so that
+            // the circles are displayed nicely (subjectively)
+
+
+
+            /*
+             *  Step 2. draw the scatter plot
+             *
+             */
+            var circles = svg.selectAll("circle")
+                .data(data)
+                .enter().append("circle")
+                .attr('cx', function(d) {
+                    return xScale(d[xAttribute]); // define the x coordinate of the circle's center 
+                })
+                .attr('cy', function(d) {
+                    return yScale(d[yAttribute]); // define the y coordinate of the circle's center
+                })
+                .attr('r', function(d) {
+                    return rScale(d[yAttribute]); // define the radius of the circle
+                })
+                .attr('fill',function (d,i) { return color(i) })
+                //.style("fill", function(d) { return colorScale(rAttribute); })
+                
+
+            /*
+             *  Step 3. Add axes: We need to create the axes, then give them the same scaling as the figure, and 
+             *       set the orientation of the tick labels. 
+             */
+            // create the x-axis
+            var xAxis = d3.svg.axis() // d3 function to create a new default axis
+                .scale(xScale) // set the same scale as the values we used to compute x-coordinates
+                .orient("bottom"); // place the axis at bottom 
+
+            // to visualize the axis, append it to the SVG
+            svg.append("g") // 'g': a group, which we can append multiple HTML elements
+                .attr("class", "x axis") // indicate class to prepare for styling and interactivity
+                .attr("transform", "translate(0," + (h - padding) + ")") // move the axis down to where it should be
+                .call(xAxis) // draw xAxis
+                .append("text")
+                .attr("class", "label")
+                .attr("x", w - padding)
+                .attr("y", -6)
+                .style("text-anchor", "end")
+                .text(xAttribute); // define the text to display as the label
+
+            // create the y-axis: Similar to x-axis, except a few changes
+            var yAxis = d3.svg.axis()
+                .scale(yScale) // use yScale instead of xScale
+                .orient("left"); // indicate that the axis is meant to be shown on the left of the chart 
+
+            svg.append("g")
+                .attr("class", "y axis") // indicate class to prepare for styling and interactivity
+                .attr("transform", "translate(" + (padding) + ",0)") // move it to the right an amount of pixels equal to padding
+                .call(yAxis)
+                .append("text")
+                .attr("class", "label")
+                .attr("transform", "rotate(-90)") // rotate the label 90 degree so that it appears vertically
+                .attr("y", 6) // layout where to display label
+                .attr("dy", ".71em")
+                .attr("x", -padding)
+                .style("text-anchor", "end")
+                .text(yAttribute); // define the text to display as the label
+
+            /*
+             *  Step 4. Add a tooltip to point when hovered over
+             *
+             */
+            // add the tooltip area to the webpage
+            var tooltip = d3.select("body").append("div") // tooltip is a DIV element
+                .attr("class", "tooltip") // define class to style it (refer to the styles defined at the top of this document)
+                .style('opacity', 0); // initially, do not show the tooltip
+
+
+            // define mouseover and mouseout event for the circles
+            // the events are defined for all elements in the circle set.
+            circles.on("mouseover", function(d) { // d: the data point associated with the circle being mouseover'ed
+                    tooltip.transition() // add transition effect
+                        .duration(200)
+                        .style("opacity", .9);
+
+                    // define the text to be shown in the tooltip
+                    tooltip.html("(" + d[xAttribute] + ", " + d[yAttribute] +", "+ d[rAttribute] + ", "+ d['Name'] + ", "+ d['Nationality'] +")")
+                        .style("left", (d3.event.pageX + rScale(d[xAttribute]) + 5) + "px")
+                        .style("top", (d3.event.pageY - 28) + "px");
+                })
+                .on("mouseout", function(d) { // d: the data point associated with the circle being mouseout'ed
+                    tooltip.transition() // add transition effect
+                        .duration(500)
+                        .style("opacity", 0); // set opacity to 0 to make tooltip disappear
+                });
+
+
+            /*
+             *  Step 5. Add legend
+             *
+             */
+            // the data used to show legend
+        
+
+            // legend are HTML objects (g) bound to colorsUsed
+            var legend = svg.selectAll(".legend")
+                .data(colorsUsed) // data binding
+                .enter().append("g")    // each legend is a group ('g' element) containing a text 
+                                        // and a square (to be added in line 252 to 269) 
+                .attr("class", "legend") // used for selection (see line 239) and (if necessary) styling
+                .attr("transform", function(d, i) { // move the legend to appropriate positions
+                    return "translate(0," + i * 20 + ")";
+                });
+
+            // draw legend colored rectangles
+            var legendX = w - padding, // define locations for legends
+                legendY =  padding; // define locations for legends
+
+            legend.append("rect")
+                .attr("x", legendX)
+                .attr("y", legendY)
+                .attr("width", 18)
+                .attr("height", 18)
+                .style("fill", function(d) { // show the color in the legend
+                    return d.color;
+                });
+
+            // draw legend text
+            legend.append("text")
+                .attr("x", legendX - 6)
+                .attr("y", legendY + 10)
+                .attr("dy", ".35em")
+                .style("text-anchor", "end")
+                .text(function(d) { // show the name in the legend
+                    return d.name;
+                });
+        });
+
+    </script>
+</body>
